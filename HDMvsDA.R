@@ -138,8 +138,6 @@ DefaultAssay(DAHDM_Obj_filtered_list$DA) <- "RNA"
 common_barcodes_in_HDM <- common_barcodes[common_barcodes %in% DAHDM_Obj_filtered_list$HDM@meta.data$Barcode]
 common_barcodes_in_DA <- common_barcodes[common_barcodes %in% DAHDM_Obj_filtered_list$DA@meta.data$Barcode]
 
-DAHDM_Obj_filtered_list$HDM@meta.data <- DAHDM_Obj_filtered_list$HDM@meta.data[DAHDM_Obj_filtered_list$HDM@meta.data$Barcode %in% common_barcodes, ]
-DAHDM_Obj_filtered_list$HDM@meta.data[1:5, ]
 
 # Check the lengths of common barcodes found in each object
 length(common_barcodes_in_HDM)

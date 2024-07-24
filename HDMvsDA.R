@@ -36,7 +36,6 @@ library(devtools)
 library(Seurat)
 library(SeuratObject)
 library(remotes)
-
 library(targets)
 library(tidyverse)
 library(ggplot2)
@@ -45,12 +44,7 @@ library(gridExtra)
 library(Matrix)
 library(pheatmap)
 library(harmony)
-#library(SingleCellExperiment)
 
-
-
-
-getwd()
 
 # Get or read the file
 base_path <- "/Volumes/Groupdir/SUN-ISIM-skin-allergy/Mishu/DAvsHDM"
@@ -119,35 +113,10 @@ FeatureScatter(DAHDM_Obj_filtered, feature1 = "nCount_RNA", feature2 = "nFeature
 
 
 
-#Split objects
-# split the object into a list of multiple objects based on a metadata, column creates a list of two objects
+#Split the object into a list of multiple objects based on a metadata, column creates a list of two objects
 DAHDM_Obj_filtered_list <- SplitObject(DAHDM_Obj_filtered, split.by = "Id")
 DAHDM_Obj_filtered_list$HDM
 DAHDM_Obj_filtered_list$DA
-
-
-# Identify common barcodes in the metadata of both Seurat objects
-common_barcodes <- intersect(DAHDM_Obj_filtered_list$HDM@meta.data$Barcode, DAHDM_Obj_filtered_list$DA@meta.data$Barcode)
-view(common_barcodes)
-
-# Change the default assay to RNA before subsetting
-DefaultAssay(DAHDM_Obj_filtered_list$HDM) <- "RNA"
-DefaultAssay(DAHDM_Obj_filtered_list$DA) <- "RNA"
-
-# Verify the common barcodes exist in the RNA assay
-common_barcodes_in_HDM <- common_barcodes[common_barcodes %in% DAHDM_Obj_filtered_list$HDM@meta.data$Barcode]
-common_barcodes_in_DA <- common_barcodes[common_barcodes %in% DAHDM_Obj_filtered_list$DA@meta.data$Barcode]
-
-
-# Check the lengths of common barcodes found in each object
-length(common_barcodes_in_HDM)
-length(common_barcodes_in_DA)
-
-# Subset the objects using the verified common barcodes
-HDM_common <- subset(DAHDM_Obj_filtered_list$HDM, subset = Barcode == common_barcodes_in_HDM)
-DA_common <- subset(DAHDM_Obj_filtered_list$DA, idents = common_barcodes_in_DA)
-DAHDM_Obj_filtered_list$HDM@meta.data <- merge(DAHDM_Obj_filtered_list$HDM@meta.data, common_barcodes_in_HDM, by.x = "Barcode", by.y = "emp_id")
-
 
 # Read file with the information of cells origin
 Hashing <- read.csv("Hashing.csv")
@@ -157,6 +126,7 @@ View(Hashing)
 ## Prepare HDM object
 ## Save the rownames
 DAHDM_Obj_filtered_list$HDM@meta.data$Rownames <- row.names(DAHDM_Obj_filtered_list$HDM@meta.data)
+
 #Adding the information about the source of the cells
 DAHDM_Obj_filtered_list$HDM@meta.data <- merge(DAHDM_Obj_filtered_list$HDM@meta.data, Hashing, by = 'Barcode')
 head(DAHDM_Obj_filtered_list$HDM@meta.data)
@@ -165,17 +135,6 @@ rownames(DAHDM_Obj_filtered_list$HDM@meta.data) <- DAHDM_Obj_filtered_list$HDM@m
 # prepare the DA Object
 DAHDM_Obj_filtered_list$DA@meta.data$Hashing <- rep("BAL-1")
 head(DAHDM_Obj_filtered_list$DA@meta.data)
-
-### Keep only BAL (bronchoalveolar lavage) type of cells
-#DAHDM_Obj_filtered_list$HDM@meta.data <- subset(DAHDM_Obj_filtered_list$HDM@meta.data, subset = Hashing == "BAL-1")
-#view(DAHDM_Obj_filtered_list$HDM@meta.data)
-
-DAHDM_Obj_filtered_list$HDM@meta.data[1:5,]
-
-
-# Check validity of each Seurat object
-validObject(DAHDM_Obj_filtered_list$HDM)
-validObject(DAHDM_Obj_filtered_list$DA)
 
 
 ## Merge two object where only BAL (bronchoalveolar lavage) type of cells are present
@@ -186,10 +145,6 @@ view(mergedDA_HDM@meta.data)
 mergedDA_HDM@meta.data <- subset(mergedDA_HDM@meta.data, subset = Hashing == "BAL-1")
 mergedDA_HDM@meta.data <- subset(mergedDA_HDM@meta.data, select = -c(Type, Rownames))
 
-
-## Removing Tcr  
-mergedDA_HDM <- mergedDA_HDM[!grepl('^Tr[abdg][vjc]', rownames(mergedDA_HDM))] # mouse
-
 ## Join the layers 
 Layers(mergedDA_HDM)
 mergedDA_HDM[["RNA"]] <- JoinLayers(mergedDA_HDM)
@@ -199,6 +154,7 @@ mergedDA_HDM[["RNA"]] <- JoinLayers(mergedDA_HDM)
 ## Scale the data to avoid technical noise (batch effect) or biological sources ( different cell cycle)
 ## perform linear dimension reduction
 # Find neighbors, clusters and Run UMAP to visualization
+
 DAHDM_Obj_Norm <- NormalizeData(object = mergedDA_HDM) %>%
   FindVariableFeatures() %>% 
   ScaleData() %>%
@@ -210,7 +166,8 @@ DAHDM_Obj_Norm <- NormalizeData(object = mergedDA_HDM) %>%
 str(DAHDM_Obj_Norm)
 view(DAHDM_Obj_Norm@meta.data)
 
-# With the Harmony Integration
+### With the Harmony Integration
+
 DAHDM_Obj_HarI <- NormalizeData(object = mergedDA_HDM) %>%
   FindVariableFeatures() %>% 
   ScaleData() %>%
@@ -227,12 +184,12 @@ str(DAHDM_Obj_HarI)
 # UMAP plot
 WoHI <- DimPlot(DAHDM_Obj_Norm, reduction = "umap", group.by = "Id",  label = TRUE, label.box = TRUE) + labs(title = "Without Integration")
 WoHI
-# split.by = "Id", "RNA_snn_res.0.5"
+
 ## Visualization the clustering with Integration
 # UMAP plot
 WHI <- DimPlot(DAHDM_Obj_HarI,reduction = "umap",group.by = "Id", label = TRUE, label.box = TRUE) + labs(title = "With Integration")
 WHI
-# split.by = "Id", "RNA_snn_res.0.5"
+
 WoHI|WHI
 
 DimPlot(DAHDM_Obj_HarI,reduction = "umap",group.by = "RNA_snn_res.0.5", label = TRUE, label.box = TRUE) + labs(title = "With Integration")
@@ -257,7 +214,7 @@ DoHeatmap(subset(DAHDM_Obj_HarI, downsample = 100), size = 3)
 DoHeatmap(DAHDM_Obj_HarI, group.by = 'Id', features = VariableFeatures(DAHDM_Obj_HarI),  size = 4,
           angle = 90) + NoLegend()
 
-#cells = 1:500,#
+
 
 ## Find differential expressed feature
 clustmarks_DAHDM <- FindAllMarkers(DAHDM_Obj_HarI, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
@@ -270,29 +227,9 @@ top10_DAHDM <- clustmarks_DAHDM %>% group_by(cluster) %>% top_n(n=10, wt = avg_l
 view(top10_DAHDM)
 
 
-
-
 # get the number of cells in each cluster
 Cell_Count <- table(Idents(DAHDM_Obj_HarI))
 view(Cell_Count)
-
-## write files
-write.csv(top10_DAHDM, file = "top10_DAHDM.csv")
-write.csv(Cell_Count, file = "Cellcount_DAHDM.csv")
-#write.csv(MarkerDAHDM, file = "clustmarks_DAHDM.csv",col.names = NA,row.names = FALSE)
-
-# cluster 0
-cluster0.DAHDM <- FindMarkers(DAHDM_Obj_HarI, ident.1 = 0, test.use = "roc", only.pos = TRUE )
-VlnPlot(seurat_obj_NormUMAP, features = c("Ramp1", "Ckb"))
-view(cluster0.DAHDM)
-
-cluster4.DAHDM <- FindMarkers(DAHDM_Obj_HarI, ident.1 = 4, test.use = "roc", only.pos = TRUE )
-
-
-FeaturePlot(seurat_obj_NormUMAP, features = c("Ramp1", "Capg"),min.cutoff = 'q10')
-
-# cluster 1
-cluster1.DAHDM <- FindMarkers(DAHDM_Obj_HarI, ident.1 = 1, test.use = "roc", only.pos = TRUE)
 
 
 
@@ -326,7 +263,6 @@ DAHDM_mart[1:5, ]
 dim(DAHDM_mart)
 view(DAHDM_mart)
 
-write.csv(DAHDM_mart, file = "DA_HDM.csv", row.names = TRUE)
 
 ## Cell type identification
 DAHDM_mart[1:10, 7]

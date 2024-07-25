@@ -1,7 +1,7 @@
 # DOG ALLERGEN vs HDM extracts
 ## Single-cell RNA_Seq datasets in R using Seurat
 # JEBUNNAHAR MISHU
-setwd("/Users/cbm737")
+
 
 # Install the packages
 if (!require("BiocManager", quietly = TRUE))
